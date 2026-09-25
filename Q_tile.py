@@ -91,6 +91,9 @@ if __name__ == "__main__":
     O, L = add(Q, K, V, 16, 16)
     print("O", torch.allclose(ref_O, O, atol=1e-3))
     print("L", torch.allclose(ref_L, L, atol=1e-3))
+    print((ref_O - O).abs().max().item(), (ref_L - L).abs().max().item())
+    print(ref_L[0, 0, :4])
+    print(L[0, 0, :4])
 
 
 
