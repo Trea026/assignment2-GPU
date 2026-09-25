@@ -109,6 +109,33 @@ if __name__ == "__main__":
                 print(ref_L[0, 0, :4])
                 print(L[0, 0, :4])
 
+import triton.testing
+
+B, H, N, d = 1, 8, 4096, 64
+Q, K, V = [torch.randn(B, H, N, d, device='cuda') for _ in range(3)]
+tri = torch.triu(torch.ones(N, N, dtype=torch.bool, device='cuda'), 1)
+
+def ref():
+    S = (Q @ K.transpose(-2, -1) / d**0.5).masked_fill(tri, float('-inf'))
+    return torch.softmax(S, -1) @ V
+    
+torch.cuda.reset_peak_memory_stats()
+ref()
+torch.cuda.synchronize()
+print("torch  peak:", torch.cuda.max_memory_allocated() / 1e9, "GB")
+
+
+def mine():
+    return add(Q, K, V, 64, 64, causal=True)
+
+torch.cuda.reset_peak_memory_stats()
+mine()
+torch.cuda.synchronize()
+print("triton peak:", torch.cuda.max_memory_allocated() / 1e9, "GB")
+
+print("torch :", triton.testing.do_bench(ref), "ms")
+print("triton:", triton.testing.do_bench(mine), "ms")
+
 
 
 
